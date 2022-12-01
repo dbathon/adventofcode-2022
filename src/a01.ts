@@ -1,4 +1,4 @@
-import { findMax, p, readLines, sum } from "./util/util";
+import { p, readLines, sum } from "./util/util";
 
 const lines = readLines("input/a01.txt", true, false);
 
