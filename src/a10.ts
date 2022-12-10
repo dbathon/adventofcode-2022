@@ -1,6 +1,6 @@
 import { p, readLines } from "./util/util";
 
-const lines = readLines("input/a09.txt");
+const lines = readLines("input/a10.txt");
 
 class Screen {
   value = 1;
