@@ -11,6 +11,13 @@ const DIRECTIONS: Record<string, Direction> = {
   R: (node) => node.getRight(),
 };
 
+const DIAGONAL_DIRECTIONS: Direction[] = [
+  (node) => node.getUp().getLeft(),
+  (node) => node.getUp().getRight(),
+  (node) => node.getDown().getLeft(),
+  (node) => node.getDown().getRight(),
+];
+
 function isOnAny(node: Map2DNode<void>, candidates: Map2DNode<void>[]): boolean {
   return candidates.find((candidate) => candidate.getNodeKey() === node.getNodeKey()) !== undefined;
 }
@@ -20,15 +27,17 @@ function moveTail(head: Map2DNode<void>, tail: Map2DNode<void>): Map2DNode<void>
     return tail;
   } else {
     // tail needs to move
-    for (const candidate of tail.get8Neighbors()) {
-      if (isOnAny(candidate, [head, ...head.get4Neighbors()])) {
-        return candidate;
+    if (head.x === tail.x || head.y === tail.y) {
+      for (const candidate of tail.get4Neighbors()) {
+        if (isOnAny(candidate, head.get4Neighbors())) {
+          return candidate;
+        }
       }
-    }
-    // if we could not move to one of the 4 direct neighbors, then try moving the diagonal neighbors
-    for (const candidate of tail.get8Neighbors()) {
-      if (isOnAny(candidate, [head, ...head.get8Neighbors()])) {
-        return candidate;
+    } else {
+      for (const candidate of DIAGONAL_DIRECTIONS.map((direction) => direction(tail))) {
+        if (isOnAny(candidate, head.get8Neighbors())) {
+          return candidate;
+        }
       }
     }
     throw new Error("moveTail failed: " + head.getNodeKey() + " " + tail.getNodeKey());
