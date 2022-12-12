@@ -5,42 +5,42 @@ const lines = readLines("input/a09.txt");
 
 type Direction = (node: Map2DNode<void>) => Map2DNode<void>;
 const DIRECTIONS: Record<string, Direction> = {
-  U: (node) => node.getUp(),
-  D: (node) => node.getDown(),
-  L: (node) => node.getLeft(),
-  R: (node) => node.getRight(),
+  U: (node) => node.up,
+  D: (node) => node.down,
+  L: (node) => node.left,
+  R: (node) => node.right,
 };
 
 const DIAGONAL_DIRECTIONS: Direction[] = [
-  (node) => node.getUp().getLeft(),
-  (node) => node.getUp().getRight(),
-  (node) => node.getDown().getLeft(),
-  (node) => node.getDown().getRight(),
+  (node) => node.up.left,
+  (node) => node.up.right,
+  (node) => node.down.left,
+  (node) => node.down.right,
 ];
 
 function isOnAny(node: Map2DNode<void>, candidates: Map2DNode<void>[]): boolean {
-  return candidates.find((candidate) => candidate.getNodeKey() === node.getNodeKey()) !== undefined;
+  return candidates.find((candidate) => candidate.nodeKey === node.nodeKey) !== undefined;
 }
 
 function moveTail(head: Map2DNode<void>, tail: Map2DNode<void>): Map2DNode<void> {
-  if (isOnAny(tail, [head, ...head.get8Neighbors()])) {
+  if (isOnAny(tail, [head, ...head.eightNeighbors])) {
     return tail;
   } else {
     // tail needs to move
     if (head.x === tail.x || head.y === tail.y) {
-      for (const candidate of tail.get4Neighbors()) {
-        if (isOnAny(candidate, head.get4Neighbors())) {
+      for (const candidate of tail.fourNeighbors) {
+        if (isOnAny(candidate, head.fourNeighbors)) {
           return candidate;
         }
       }
     } else {
       for (const candidate of DIAGONAL_DIRECTIONS.map((direction) => direction(tail))) {
-        if (isOnAny(candidate, head.get8Neighbors())) {
+        if (isOnAny(candidate, head.eightNeighbors)) {
           return candidate;
         }
       }
     }
-    throw new Error("moveTail failed: " + head.getNodeKey() + " " + tail.getNodeKey());
+    throw new Error("moveTail failed: " + head.nodeKey + " " + tail.nodeKey);
   }
 }
 
@@ -54,7 +54,7 @@ class Rope {
     for (let i = 0; i < tailCount; i++) {
       this.tailNodes.push(this.head);
     }
-    this.lastTailPositions.add(this.head.getNodeKey());
+    this.lastTailPositions.add(this.head.nodeKey);
   }
 
   moveHead(direction: Direction) {
@@ -62,7 +62,7 @@ class Rope {
     this.tailNodes.forEach((tail, i) => {
       prev = this.tailNodes[i] = moveTail(prev, tail);
     });
-    this.lastTailPositions.add(this.tailNodes[this.tailNodes.length - 1].getNodeKey());
+    this.lastTailPositions.add(this.tailNodes[this.tailNodes.length - 1].nodeKey);
   }
 
   execute(lines: string[]) {

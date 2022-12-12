@@ -16,12 +16,7 @@ lines.forEach((line, y) => {
 });
 
 type Direction = (node: Map2DNode<Tree>) => Map2DNode<Tree>;
-const directions: Direction[] = [
-  (node) => node.getUp(),
-  (node) => node.getDown(),
-  (node) => node.getLeft(),
-  (node) => node.getRight(),
-];
+const directions: Direction[] = [(node) => node.up, (node) => node.down, (node) => node.left, (node) => node.right];
 
 function getTreesInDirection(node: Map2DNode<Tree>, direction: Direction): Tree[] {
   const result: Tree[] = [];

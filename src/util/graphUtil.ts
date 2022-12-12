@@ -1,7 +1,7 @@
 import { Heap } from "./util";
 
 export interface Node {
-  getNodeKey(): any;
+  nodeKey: any;
 }
 
 export class Neighbor<N extends Node | string, State> {
@@ -18,7 +18,7 @@ export function dijkstraSearch<N extends Node | string, State>(
   }
 
   function getNodeKey<N extends Node | string>(node: N) {
-    return typeof node === "string" ? node : (node as Node).getNodeKey();
+    return typeof node === "string" ? node : (node as Node).nodeKey;
   }
 
   const queue = new Heap<QueueEntry>((a, b) => a.distance < b.distance);

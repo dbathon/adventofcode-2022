@@ -10,31 +10,31 @@ export class Map2DNode<T> implements Node {
     this.map.set(this.x, this.y, value);
   }
 
-  getNodeKey() {
+  get nodeKey() {
     return this.x + ";" + this.y;
   }
 
-  getUp() {
+  get up() {
     return new Map2DNode<T>(this.map, this.x, this.y - 1);
   }
-  getDown() {
+  get down() {
     return new Map2DNode<T>(this.map, this.x, this.y + 1);
   }
-  getLeft() {
+  get left() {
     return new Map2DNode<T>(this.map, this.x - 1, this.y);
   }
-  getRight() {
+  get right() {
     return new Map2DNode<T>(this.map, this.x + 1, this.y);
   }
 
-  get4Neighbors() {
-    return [this.getUp(), this.getRight(), this.getDown(), this.getLeft()];
+  get fourNeighbors() {
+    return [this.up, this.right, this.down, this.left];
   }
 
-  get8Neighbors() {
-    const up = this.getUp();
-    const down = this.getDown();
-    return [up.getLeft(), up, up.getRight(), this.getLeft(), this.getRight(), down.getLeft(), down, down.getRight()];
+  get eightNeighbors() {
+    const up = this.up;
+    const down = this.down;
+    return [up.left, up, up.right, this.left, this.right, down.left, down, down.right];
   }
 }
 
@@ -43,31 +43,36 @@ export class Map2DNode<T> implements Node {
  */
 export class Map2D<T> {
   private data: T[] = [];
-  private _width = 1;
+  // internalDim is always greater or equal to seenWidth and seenHeight
+  private internalDim = 1;
+  private writtenWidth = 0;
+  private writtenHeight = 0;
   originX = 0;
   originY = 0;
 
   copy(): Map2D<T> {
     const result: Map2D<T> = new Map2D();
     result.data = this.data.slice(0);
-    result._width = this._width;
+    result.internalDim = this.internalDim;
+    result.writtenWidth = this.writtenWidth;
+    result.writtenHeight = this.writtenHeight;
     result.originX = this.originX;
     result.originY = this.originY;
     return result;
   }
 
   get width(): number {
-    return this._width;
+    return this.writtenWidth;
   }
 
   get height(): number {
-    return Math.ceil(this.data.length / this._width);
+    return this.writtenHeight;
   }
 
   private getIndex(x: number, y: number, grow = false): number | undefined {
     const xIndex = x - this.originX;
     const yIndex = y - this.originY;
-    if (xIndex < 0 || xIndex >= this._width || yIndex < 0) {
+    if (xIndex < 0 || xIndex >= this.internalDim || yIndex < 0 || yIndex >= this.internalDim) {
       if (!grow) {
         return undefined;
       }
@@ -81,8 +86,9 @@ export class Map2D<T> {
       if (yIndex < 0) {
         this.originY = y;
       }
-      if (xIndex >= this._width) {
-        this._width = xIndex * 2;
+      const maxIndex = Math.max(xIndex, yIndex);
+      if (maxIndex >= this.internalDim) {
+        this.internalDim = maxIndex * 2;
       }
 
       // now just copy the data from oldMap
@@ -92,7 +98,13 @@ export class Map2D<T> {
 
       return this.getIndex(x, y);
     }
-    return yIndex * this._width + xIndex;
+    if (xIndex + 1 > this.writtenWidth) {
+      this.writtenWidth = xIndex + 1;
+    }
+    if (yIndex + 1 > this.writtenHeight) {
+      this.writtenHeight = yIndex + 1;
+    }
+    return yIndex * this.internalDim + xIndex;
   }
 
   get(x: number, y: number): T | undefined {
@@ -128,6 +140,12 @@ export class Map2D<T> {
     this.forEach((x, y) => callback(this.getNode(x, y)));
   }
 
+  getNodes(): Map2DNode<T>[] {
+    const result: Map2DNode<T>[] = [];
+    this.forEach((x, y) => result.push(this.getNode(x, y)));
+    return result;
+  }
+
   getAsArray(): (T | undefined)[][] {
     const width = this.width;
     const height = this.height;
@@ -145,12 +163,12 @@ export class Map2D<T> {
   /**
    * This only works if all the elements are single character strings.
    */
-  draw(): string {
+  draw(toStr: (t: T) => unknown = (t) => t): string {
     return this.getAsArray()
       .map((row) =>
         row
           .map((element) => {
-            return element === undefined ? " " : element;
+            return element === undefined ? " " : toStr(element);
           })
           .join("")
       )
