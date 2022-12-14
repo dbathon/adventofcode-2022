@@ -6,7 +6,6 @@ const lines = readLines("input/a14.txt");
 type T = "#" | "o";
 
 const map = new Map2D<T>();
-map.originX = 500;
 
 function draw(map: Map2D<T>, [x, y]: [number, number], [xTo, yTo]: [number, number]) {
   while (x !== xTo || y !== yTo) {
@@ -25,42 +24,50 @@ for (const line of lines) {
   }
 }
 
-function dropSand(map: Map2D<T>, [x, y]: [number, number], floor?: number): boolean {
+function dropSand(map: Map2D<T>, [x, y]: [number, number], floor?: number): number {
   const lowest = map.originY + map.height + 1;
-  let node = map.getNode(x, y);
-  if (node.value) {
-    return false;
+  let count = 0;
+
+  let stack = [map.getNode(x, y)];
+  while (stack.length) {
+    let node = stack[stack.length - 1];
+    if (node.value) {
+      stack.pop();
+      continue;
+    }
+    while (true) {
+      if (floor !== undefined) {
+        if (node.y + 1 === floor) {
+          node.value = "o";
+          ++count;
+          break;
+        }
+      } else if (node.y > lowest) {
+        return count;
+      }
+      const down = node.down;
+      if (!down.value) {
+        node = down;
+      } else if (!down.left.value) {
+        node = down.left;
+      } else if (!down.right.value) {
+        node = down.right;
+      } else {
+        node.value = "o";
+        ++count;
+        break;
+      }
+
+      stack.push(node);
+    }
   }
-  while (true) {
-    if (floor !== undefined && node.y + 1 === floor) {
-      node.value = "o";
-      return true;
-    }
-    const down = node.down;
-    if (!down.value) {
-      node = down;
-    } else if (!down.left.value) {
-      node = down.left;
-    } else if (!down.right.value) {
-      node = down.right;
-    } else {
-      node.value = "o";
-      return true;
-    }
-    if (floor === undefined && node.y > lowest) {
-      return false;
-    }
-  }
+  return count;
 }
 
 const part2Floor = map.originY + map.height + 1;
 
-let cnt1 = 0;
 const dropCoordinate: [number, number] = [500, 0];
-while (dropSand(map, dropCoordinate)) {
-  ++cnt1;
-}
-p(cnt1);
+p(dropSand(map, dropCoordinate));
 
 // clear the sand
 map.forEachNode((node) => {
@@ -69,8 +76,4 @@ map.forEachNode((node) => {
   }
 });
 
-let cnt2 = 0;
-while (dropSand(map, dropCoordinate, part2Floor)) {
-  ++cnt2;
-}
-p(cnt2);
+p(dropSand(map, dropCoordinate, part2Floor));
