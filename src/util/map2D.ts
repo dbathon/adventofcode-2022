@@ -42,7 +42,7 @@ export class Map2DNode<T> implements Node {
  * A 2D map of T elements around (0,0). It grows as needed in all directions (but is not sparse).
  */
 export class Map2D<T> {
-  private data: T[] = [];
+  private data: (T | undefined)[] = [];
   // internalDim is always greater or equal to seenWidth and seenHeight
   private internalDim = 1;
   private writtenWidth = 0;
@@ -113,7 +113,7 @@ export class Map2D<T> {
   }
 
   set(x: number, y: number, value: T | undefined): void {
-    if (value !== undefined) {
+    if (value !== undefined || this.get(x, y) !== undefined) {
       this.data[this.getIndex(x, y, true)!] = value;
     }
   }
