@@ -44,6 +44,24 @@ function combine(ranges: Range[]): Range[] {
   return result;
 }
 
+function findGap(ranges: Range[]): number | undefined {
+  if (ranges.length <= 1) {
+    return undefined;
+  }
+  const sorted = [...ranges].sort((a, b) => a.min - b.min);
+  let { max } = sorted.shift()!;
+  while (sorted.length) {
+    const { min: curMin, max: curMax } = sorted.shift()!;
+    if (curMin > max) {
+      return max + 1;
+    } else {
+      max = Math.max(max, curMax);
+    }
+  }
+
+  return undefined;
+}
+
 const reports: Report[] = [];
 for (const line of lines) {
   const [sX, sY, bX, bY] = line
@@ -64,18 +82,18 @@ function buildRanges(reports: Report[], y: number): Range[] {
     }
   }
 
-  return combine(ranges);
+  return ranges;
 }
 
 const p1Y = 2000000;
 const beaconCountAtP1Y = new Set(reports.filter((r) => r.bY === p1Y).map((r) => r.bX)).size;
-p(sum(buildRanges(reports, p1Y).map((r) => r.size)) - beaconCountAtP1Y);
+p(sum(combine(buildRanges(reports, p1Y)).map((r) => r.size)) - beaconCountAtP1Y);
 
 // TODO: maybe optimize...
 for (let y = 0; y < 4000000; y++) {
-  const ranges = buildRanges(reports, y);
-  if (ranges.length > 1) {
-    p((ranges[0].max + 1) * 4000000 + y);
+  const x = findGap(buildRanges(reports, y));
+  if (x !== undefined) {
+    p(x * 4000000 + y);
     break;
   }
 }
