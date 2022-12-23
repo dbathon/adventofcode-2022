@@ -63,29 +63,6 @@ class Blueprint {
   }
 }
 
-class State {
-  constructor(readonly resourceCounts: Counts, readonly outputCounts: Counts, readonly remainingMinutes: number) {}
-
-  applyProductionOrWait(production: Production): [State, boolean] {
-    if (allLargerOrEqual(this.resourceCounts, production.resourceCounts)) {
-      return [
-        new State(
-          this.resourceCounts + this.outputCounts - production.resourceCounts,
-          this.outputCounts + setCount(0, production.outputResource, 1),
-          this.remainingMinutes - 1
-        ),
-        true,
-      ];
-    } else {
-      return [new State(this.resourceCounts + this.outputCounts, this.outputCounts, this.remainingMinutes - 1), false];
-    }
-  }
-
-  get key(): string {
-    return `${this.resourceCounts},${this.outputCounts},${this.remainingMinutes}`;
-  }
-}
-
 const blueprints = lines.map((line) => {
   const match = line.match(
     /Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian./
@@ -101,22 +78,28 @@ const blueprints = lines.map((line) => {
   ]);
 });
 
-function findMaxGeodes(blueprint: Blueprint, state: State, bestCounts: number[] = []): number {
-  const geodeCount = getCount(state.resourceCounts, GEODE);
-  if (state.remainingMinutes === 0) {
+function findMaxGeodes(
+  blueprint: Blueprint,
+  resourceCounts: Counts,
+  outputCounts: Counts,
+  remainingMinutes: number,
+  bestCounts: number[] = []
+): number {
+  const geodeCount = getCount(resourceCounts, GEODE);
+  if (remainingMinutes === 0) {
     return geodeCount;
   }
-  if (state.remainingMinutes < 0) {
+  if (remainingMinutes < 0) {
     // should not happen
     return 0;
   }
-  const previousBestGeodeCount = bestCounts[state.remainingMinutes];
+  const previousBestGeodeCount = bestCounts[remainingMinutes];
   if (previousBestGeodeCount !== undefined && geodeCount < previousBestGeodeCount) {
     return 0;
   }
-  bestCounts[state.remainingMinutes] = geodeCount;
+  bestCounts[remainingMinutes] = geodeCount;
 
-  if (!allLargerOrEqual(blueprint.sumResourceCounts, setCount(state.outputCounts, GEODE, 0))) {
+  if (!allLargerOrEqual(blueprint.sumResourceCounts, setCount(outputCounts, GEODE, 0))) {
     // this state will produce more per minute than could be used, so it is inefficient, so don't follow it
     return 0;
   }
@@ -124,18 +107,31 @@ function findMaxGeodes(blueprint: Blueprint, state: State, bestCounts: number[] 
   let max = 0;
 
   for (const production of blueprint.productions) {
-    if (allSignLargerOrEqual(state.outputCounts, production.resourceCounts)) {
+    if (allSignLargerOrEqual(outputCounts, production.resourceCounts)) {
       // we can potentially produce this if we wait
-      let tmpState = state;
+      let tmpResourceCounts = resourceCounts;
+      let tmpOutputCounts = outputCounts;
+      let tmpRemainingMinutes = remainingMinutes;
       while (true) {
-        const [newState, applied] = tmpState.applyProductionOrWait(production);
-        tmpState = newState;
-        if (applied || tmpState.remainingMinutes <= 0) {
+        const productionPossible = allLargerOrEqual(tmpResourceCounts, production.resourceCounts);
+        tmpResourceCounts += tmpOutputCounts;
+        tmpRemainingMinutes -= 1;
+
+        if (productionPossible) {
+          tmpResourceCounts -= production.resourceCounts;
+          tmpOutputCounts += setCount(0, production.outputResource, 1);
+          break;
+        }
+
+        if (tmpRemainingMinutes <= 0) {
           break;
         }
       }
 
-      max = Math.max(max, findMaxGeodes(blueprint, tmpState, bestCounts));
+      max = Math.max(
+        max,
+        findMaxGeodes(blueprint, tmpResourceCounts, tmpOutputCounts, tmpRemainingMinutes, bestCounts)
+      );
     }
   }
 
@@ -144,12 +140,12 @@ function findMaxGeodes(blueprint: Blueprint, state: State, bestCounts: number[] 
 
 let sum = 0;
 for (const blueprint of blueprints) {
-  sum += blueprint.id * findMaxGeodes(blueprint, new State(0, setCount(0, ORE, 1), 24));
+  sum += blueprint.id * findMaxGeodes(blueprint, 0, setCount(0, ORE, 1), 24);
 }
 p(sum);
 
 let product = 1;
 for (const blueprint of blueprints.slice(0, 3)) {
-  product *= findMaxGeodes(blueprint, new State(0, setCount(0, ORE, 1), 32));
+  product *= findMaxGeodes(blueprint, 0, setCount(0, ORE, 1), 32);
 }
 p(product);
